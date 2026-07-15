@@ -4355,13 +4355,22 @@ button {
   top: 16px;
   right: 16px;
   z-index: 4;
+  display: inline-grid;
+  place-items: center;
   width: 42px;
   height: 42px;
+  padding: 0;
   border: none;
   border-radius: 50%;
   font-size: 28px;
+  line-height: 1;
   color: #ffffff;
   background: rgba(10, 10, 12, 0.7);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .project-modal__content {

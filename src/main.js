@@ -708,9 +708,8 @@ function bindProjects() {
   }
 
   const getProjectIndex = (card) => {
-    const button = card.querySelector('[data-project-index]');
-    const index = Number(button?.dataset.projectIndex);
-    return Number.isFinite(index) ? index : -1;
+    const cards = Array.from(roots.projects.querySelectorAll('.project-showcase-card'));
+    return cards.indexOf(card);
   };
 
   const getCardImages = (card) =>
@@ -825,13 +824,6 @@ function bindProjects() {
       return;
     }
 
-    const button = target.closest('[data-project-index]');
-
-    if (!button) {
-      return;
-    }
-
-    openProjectModal(Number(button.dataset.projectIndex));
   });
 
   roots.projects.addEventListener('keydown', (event) => {
@@ -907,10 +899,18 @@ function bindProjectModal() {
     return;
   }
 
-  roots.modal.querySelector('.project-modal__close')?.addEventListener('click', (event) => {
+  const closeControl = roots.modal.querySelector('.project-modal__close');
+  const closeModal = (event) => {
     event.preventDefault();
     roots.modal.classList.remove('project-modal--lightbox');
     roots.modal.close();
+  };
+
+  closeControl?.addEventListener('click', closeModal);
+  closeControl?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      closeModal(event);
+    }
   });
 
   roots.modalContent.addEventListener('click', (event) => {
