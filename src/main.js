@@ -2,6 +2,10 @@ import './styles.css';
 import { companyData } from './data/company.js';
 import { projects } from './data/projects.js';
 import { calculatorSteps } from './data/calculator.js';
+import quizConsultationImage from './assets/quiz-consultation.png';
+import quizNewRoofImage from './assets/quiz-new-roof.png';
+import quizRepairRebuildImage from './assets/quiz-repair-rebuild.png';
+import quizReplacementRoofImage from './assets/quiz-replacement-roof.png';
 
 const pageUrl = new URL(window.location.href);
 const queryParams = pageUrl.searchParams;
@@ -213,10 +217,10 @@ function getCalculatorOptionIcon(stepId, option) {
   }
 
   const icons = {
-    'Монтаж новой кровли': `<img class="option-card__icon-image" src="/src/assets/quiz-new-roof.png" alt="" loading="lazy" />`,
-    'Полная замена кровли': `<img class="option-card__icon-image" src="/src/assets/quiz-replacement-roof.png" alt="" loading="lazy" />`,
-    'Ремонт или реконструкция': `<img class="option-card__icon-image" src="/src/assets/quiz-repair-rebuild.png" alt="" loading="lazy" />`,
-    'Нужна консультация': `<img class="option-card__icon-image" src="/src/assets/quiz-consultation.png" alt="" loading="lazy" />`,
+    'Монтаж новой кровли': `<img class="option-card__icon-image" src="${quizNewRoofImage}" alt="" loading="lazy" />`,
+    'Полная замена кровли': `<img class="option-card__icon-image" src="${quizReplacementRoofImage}" alt="" loading="lazy" />`,
+    'Ремонт или реконструкция': `<img class="option-card__icon-image" src="${quizRepairRebuildImage}" alt="" loading="lazy" />`,
+    'Нужна консультация': `<img class="option-card__icon-image" src="${quizConsultationImage}" alt="" loading="lazy" />`,
   };
 
   return icons[option] || `<span class="option-card__icon-dot"></span>`;
