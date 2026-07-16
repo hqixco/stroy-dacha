@@ -1,11 +1,11 @@
 export const companyData = {
   name: 'Строй Дача',
-  siteUrl: 'https://stroydacha1.ru',
-  serviceUrl: 'https://stroydacha1.ru/montazh-krovli-pod-klyuch/',
-  ogImageUrl: 'https://stroydacha1.ru/public-hero-cover.png',
+  siteUrl: 'https://stroy-dacha-pro.ru',
+  serviceUrl: 'https://stroy-dacha-pro.ru/montazh-krovli-pod-klyuch/',
+  ogImageUrl: 'https://stroy-dacha-pro.ru/public-hero-cover.png',
   phone: '7 903 648-55-35',
   phoneHref: 'tel:+79036485535',
-  email: 'example@example.com',
+  email: 'laakonven@yandex.ru',
   telegram: 'https://t.me/stroipremium',
   city: 'Москва',
   mainRegion: 'Москва и Московская область',
@@ -90,3 +90,4 @@ export const reviewsMeta = {
     },
   ],
 };
+

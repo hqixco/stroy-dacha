@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://stroy-dacha-pro.ru/sitemap.xml
+

@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://stroydacha1.ru/sitemap.xml
+Sitemap: https://stroy-dacha-pro.ru/sitemap.xml
+

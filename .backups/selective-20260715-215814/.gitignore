@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.agents/
+
+.env
+.env.*
+*.log
+api/lead-config.php
+api/logs/
+
+.DS_Store
+Thumbs.db
+
+Имя

@@ -6,10 +6,21 @@ import quizConsultationImage from './assets/quiz-consultation.png';
 import quizNewRoofImage from './assets/quiz-new-roof.png';
 import quizRepairRebuildImage from './assets/quiz-repair-rebuild.png';
 import quizReplacementRoofImage from './assets/quiz-replacement-roof.png';
+import quizAreaUnder100Image from './assets/quiz-area-under-100.png';
+import quizAreaOver250Image from './assets/quiz-area-over-250.png';
+import pricingThumbDo120Image from './assets/pricing-thumb-do-120.png';
+import pricingThumbOt220Image from './assets/pricing-thumb-ot-220.png';
+import heroUploadImage from './assets/header-photo-estimate.png';
 
 const pageUrl = new URL(window.location.href);
 const queryParams = pageUrl.searchParams;
 const trackingKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'yclid'];
+const LEAD_ENDPOINT = '/api/lead.php';
+const METRIKA_COUNTER_ID = 110763617;
+const METRIKA_FORM_GOAL = 'form_submit';
+const MODAL_ANIMATION_DURATION = 220;
+const FAQ_ANIMATION_DURATION = 220;
+const IS_LOCAL_DEVELOPMENT = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 
 const calculatorState = {
   currentStep: 0,
@@ -47,11 +58,13 @@ function trackEvent(eventName, payload = {}) {
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push(eventPayload);
 
-  if (typeof window.ym === 'function') {
-    window.ym(undefined, 'reachGoal', eventName, payload);
-  }
-
   window.dispatchEvent(new CustomEvent('stroydacha:analytics', { detail: eventPayload }));
+}
+
+function trackFormGoal(payload = {}) {
+  if (typeof window.ym === 'function') {
+    window.ym(METRIKA_COUNTER_ID, 'reachGoal', METRIKA_FORM_GOAL, payload);
+  }
 }
 
 function clearCalculatorAutoAdvance() {
@@ -73,7 +86,6 @@ function applyCompanyData() {
   const footerTelegram = document.querySelector('#footer-telegram');
   const headerPhone = document.querySelector('#header-phone');
   const headerPhoneText = document.querySelector('#header-phone .header-bar__phone-text');
-  const headerCall = document.querySelector('.header-bar__call');
   const footerPhone = document.querySelector('#footer-phone');
   const footerEmail = document.querySelector('#footer-email');
   const footerSchedule = document.querySelector('#footer-schedule');
@@ -92,10 +104,6 @@ function applyCompanyData() {
   if (footerTelegram) footerTelegram.href = companyData.telegram;
   if (headerPhoneText) headerPhoneText.textContent = companyData.phone;
   if (headerPhone) headerPhone.href = companyData.phoneHref;
-  if (headerCall) {
-    headerCall.href = companyData.phoneHref;
-    headerCall.dataset.track = 'phone-click';
-  }
   if (footerPhone) {
     footerPhone.textContent = companyData.phone;
     footerPhone.href = companyData.phoneHref;
@@ -151,7 +159,7 @@ function renderCalculatorStep() {
       <div class="calculator__step-head">
         <h3 class="calculator__step-title">${step.title}</h3>
       </div>
-      <div class="option-grid ${step.id === 'task_type' ? 'option-grid--task-type' : ''}">
+      <div class="option-grid ${step.id === 'task_type' || step.id === 'roof_area' ? 'option-grid--task-type' : ''}">
         ${step.options
           .map(
             (option, index) => `
@@ -186,7 +194,14 @@ function renderCalculatorStep() {
           </label>
           <label class="field calculator__field calculator__field--primary">
             <span class="field__label">Телефон</span>
-            <input class="field__control calculator__control" type="tel" name="phone" autocomplete="tel" placeholder="+7 (___) ___-__-__" required />
+            <span class="field__phone-combo">
+              <input class="field__control calculator__control" type="tel" name="phone" autocomplete="tel" placeholder="+7 (___) ___-__-__" required />
+              <select class="field__phone-method" name="contact_method" aria-label="Предпочтительный способ связи">
+                <option value="MAX">MAX</option>
+                <option value="Telegram">Telegram</option>
+                <option value="По телефону" selected>По телефону</option>
+              </select>
+            </span>
           </label>
         </div>
         <div class="calculator__upload-wrap">
@@ -212,18 +227,36 @@ function renderCalculatorStep() {
 }
 
 function getCalculatorOptionIcon(stepId, option) {
-  if (stepId !== 'task_type') {
-    return `<span class="option-card__icon-dot"></span>`;
+  if (stepId === 'task_type') {
+    const icons = {
+      'Монтаж новой кровли': `<img class="option-card__icon-image" src="${quizNewRoofImage}" alt="" loading="lazy" />`,
+      'Полная замена кровли': `<img class="option-card__icon-image" src="${quizReplacementRoofImage}" alt="" loading="lazy" />`,
+      'Ремонт или реконструкция': `<img class="option-card__icon-image" src="${quizRepairRebuildImage}" alt="" loading="lazy" />`,
+      'Нужна консультация': `<img class="option-card__icon-image" src="${quizConsultationImage}" alt="" loading="lazy" />`,
+    };
+
+    return icons[option] || `<span class="option-card__icon-dot"></span>`;
   }
 
-  const icons = {
-    'Монтаж новой кровли': `<img class="option-card__icon-image" src="${quizNewRoofImage}" alt="" loading="lazy" />`,
-    'Полная замена кровли': `<img class="option-card__icon-image" src="${quizReplacementRoofImage}" alt="" loading="lazy" />`,
-    'Ремонт или реконструкция': `<img class="option-card__icon-image" src="${quizRepairRebuildImage}" alt="" loading="lazy" />`,
-    'Нужна консультация': `<img class="option-card__icon-image" src="${quizConsultationImage}" alt="" loading="lazy" />`,
-  };
+  if (stepId === 'roof_area' && option === 'До 100 м²') {
+    return `<img class="option-card__icon-image" src="${pricingThumbDo120Image}" alt="" loading="lazy" />`;
+  }
 
-  return icons[option] || `<span class="option-card__icon-dot"></span>`;
+  if (stepId === 'roof_area') {
+    const roofAreaIcons = {
+      'До 100 м²': pricingThumbDo120Image,
+      '100–150 м²': quizAreaUnder100Image,
+      '150–250 м²': pricingThumbOt220Image,
+      'Более 250 м²': quizAreaOver250Image,
+      'Не знаю площадь': '/src/assets/service-survey.png',
+    };
+
+    if (roofAreaIcons[option]) {
+      return `<img class="option-card__icon-image" src="${roofAreaIcons[option]}" alt="" loading="lazy" />`;
+    }
+  }
+
+  return `<span class="option-card__icon-dot"></span>`;
 }
 
 function getSelectedCalculatorValue(stepId) {
@@ -241,9 +274,97 @@ function getSelectedCalculatorValue(stepId) {
   return checked ? checked.value : '';
 }
 
-function validatePhone(value) {
+function sanitizePhoneDigits(value) {
   const digits = value.replace(/\D/g, '');
-  return digits.length >= 11;
+  let localDigits = digits;
+
+  if ((digits.startsWith('7') || digits.startsWith('8')) && digits.length >= 11) {
+    localDigits = digits.slice(1);
+  }
+
+  if (localDigits.length > 10) {
+    localDigits = localDigits.slice(0, 10);
+  }
+
+  if (!localDigits.length) {
+    return '';
+  }
+
+  if (localDigits[0] === '7' || localDigits[0] === '8') {
+    localDigits = localDigits.slice(1);
+  }
+
+  return localDigits.slice(0, 10);
+}
+
+function formatPhoneValue(localDigits) {
+  const mask = localDigits.padEnd(10, '_');
+
+  return `+7 (${mask.slice(0, 3)}) ${mask.slice(3, 6)}-${mask.slice(6, 8)}-${mask.slice(8, 10)}`;
+}
+
+function getPhoneCaretPosition(value) {
+  const firstPlaceholderIndex = value.indexOf('_');
+
+  if (firstPlaceholderIndex !== -1) {
+    return firstPlaceholderIndex;
+  }
+
+  return value.length;
+}
+
+function setPhoneCaret(input) {
+  const caretPosition = getPhoneCaretPosition(input.value);
+
+  window.requestAnimationFrame(() => {
+    input.setSelectionRange(caretPosition, caretPosition);
+  });
+}
+
+function isPhoneInput(element) {
+  return element instanceof HTMLInputElement && element.type === 'tel' && element.name === 'phone';
+}
+
+function applyPhoneMask(input) {
+  input.value = formatPhoneValue(sanitizePhoneDigits(input.value));
+}
+
+function bindPhoneMask() {
+  document.addEventListener('focusin', (event) => {
+    if (!isPhoneInput(event.target)) {
+      return;
+    }
+
+    applyPhoneMask(event.target);
+    setPhoneCaret(event.target);
+  });
+
+  document.addEventListener('input', (event) => {
+    if (!isPhoneInput(event.target)) {
+      return;
+    }
+
+    applyPhoneMask(event.target);
+    setPhoneCaret(event.target);
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!isPhoneInput(event.target)) {
+      return;
+    }
+
+    setPhoneCaret(event.target);
+  });
+
+  document.addEventListener('blur', (event) => {
+    if (!isPhoneInput(event.target)) {
+      return;
+    }
+
+    if (!sanitizePhoneDigits(event.target.value)) {
+      event.target.value = '';
+    }
+  }, true);
 }
 
 function appendTrackingFields(form, extraPayload = {}) {
@@ -285,6 +406,95 @@ function getFormPayload(form, extraPayload = {}) {
   };
 }
 
+function getFormName(form, fallbackEventName) {
+  if (form === roots.calculatorForm) {
+    return 'Калькулятор';
+  }
+
+  if (form === roots.auditForm) {
+    return 'Проверка сметы';
+  }
+
+  if (form === roots.leadForm) {
+    return 'Получить расчёт';
+  }
+
+  return fallbackEventName;
+}
+
+function buildQuizAnswers() {
+  return calculatorSteps
+    .filter((step) => step.type !== 'fields')
+    .map((step) => ({
+      question: step.title,
+      answer: calculatorState.answers[step.id] || '',
+    }))
+    .filter((item) => item.answer);
+}
+
+function buildLeadRequestBody(form, eventName, extraPayload = {}) {
+  const formData = new FormData(form);
+  const metadata = {
+    form_name: getFormName(form, eventName),
+    source_id: eventName,
+    page: window.location.pathname,
+    page_url: window.location.href,
+    submitted_at: new Date().toISOString(),
+    website: '',
+    ...Object.fromEntries(trackingKeys.map((key) => [key, queryParams.get(key) || ''])),
+    ...extraPayload,
+  };
+
+  Object.entries(metadata).forEach(([key, value]) => {
+    if (value === undefined || value === null) {
+      return;
+    }
+
+    if (Array.isArray(value) || (typeof value === 'object' && !(value instanceof File))) {
+      formData.set(key, JSON.stringify(value));
+      return;
+    }
+
+    formData.set(key, String(value));
+  });
+
+  return formData;
+}
+
+async function submitLeadForm(form, eventName, extraPayload = {}) {
+  if (IS_LOCAL_DEVELOPMENT) {
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
+
+    return {
+      success: true,
+      message: 'Заявка успешно отправлена. Мы свяжемся с вами в ближайшее время.',
+      mocked: true,
+    };
+  }
+
+  const body = buildLeadRequestBody(form, eventName, extraPayload);
+  const response = await fetch(LEAD_ENDPOINT, {
+    method: 'POST',
+    body,
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.message || 'Не удалось отправить заявку.');
+  }
+
+  return payload;
+}
+
 function showFormMessage(form, text, type) {
   const message = form.querySelector('[data-form-message]');
 
@@ -292,12 +502,35 @@ function showFormMessage(form, text, type) {
     return;
   }
 
-  message.textContent = text;
   message.dataset.state = type;
+  form.classList.toggle('is-success', type === 'success');
+
+  if (!text) {
+    message.textContent = '';
+    form.classList.remove('is-success');
+    return;
+  }
+
+  if (type === 'success') {
+    message.innerHTML = `
+      <span class="form-shell__message-icon" aria-hidden="true">✓</span>
+      <span class="form-shell__message-body">
+        <strong class="form-shell__message-title">Успешно отправлено</strong>
+        <span class="form-shell__message-text">${text}</span>
+      </span>
+    `;
+    return;
+  }
+
+  message.textContent = text;
 }
 
 function handleGenericFormSubmit(form, eventName, extraPayload = {}) {
-  form.addEventListener('submit', (event) => {
+  if (!form) {
+    return;
+  }
+
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
 
     if (form.dataset.submitting === 'true') {
@@ -308,27 +541,27 @@ function handleGenericFormSubmit(form, eventName, extraPayload = {}) {
       return;
     }
 
-    const phone = form.querySelector('input[name="phone"]');
-
-    if (phone && !validatePhone(phone.value)) {
-      showFormMessage(form, 'Проверьте номер телефона: нужно не меньше 11 цифр.', 'error');
-      phone.focus();
-      return;
-    }
-
     form.dataset.submitting = 'true';
-    appendTrackingFields(form, extraPayload);
-    const payload = getFormPayload(form, extraPayload);
+    showFormMessage(form, 'Отправляем заявку...', 'idle');
 
-    window.__stroyDachaLeads = window.__stroyDachaLeads || [];
-    window.__stroyDachaLeads.push({ eventName, payload });
+    try {
+      appendTrackingFields(form, extraPayload);
+      const payload = getFormPayload(form, extraPayload);
+      const responsePayload = await submitLeadForm(form, eventName, extraPayload);
 
-    trackEvent(eventName, payload);
-    showFormMessage(form, 'Форма заполнена. Данные собраны и готовы к подключению к CRM или почте.', 'success');
-    form.reset();
-    window.setTimeout(() => {
+      window.__stroyDachaLeads = window.__stroyDachaLeads || [];
+      window.__stroyDachaLeads.push({ eventName, payload });
+
+      trackEvent(eventName, payload);
+      trackFormGoal(payload);
+      showFormMessage(form, responsePayload.message || 'Заявка отправлена.', 'success');
+      form.reset();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Не удалось отправить заявку.';
+      showFormMessage(form, errorMessage, 'error');
+    } finally {
       form.dataset.submitting = 'false';
-    }, 1500);
+    }
   });
 }
 
@@ -412,7 +645,7 @@ function bindCalculator() {
     renderCalculatorStep();
   });
 
-  roots.calculatorNext.addEventListener('click', () => {
+  roots.calculatorNext.addEventListener('click', async () => {
     clearCalculatorAutoAdvance();
     const step = calculatorSteps[calculatorState.currentStep];
 
@@ -431,26 +664,44 @@ function bindCalculator() {
       return;
     }
 
-    const phone = roots.calculatorForm.querySelector('input[name="phone"]');
-
-    if (phone && !validatePhone(phone.value)) {
-      showFormMessage(roots.calculatorForm, 'Проверьте номер телефона: нужно не меньше 11 цифр.', 'error');
-      phone.focus();
+    if (roots.calculatorForm.dataset.submitting === 'true') {
       return;
     }
 
-    appendTrackingFields(roots.calculatorForm, { calculator_answers: calculatorState.answers });
-    const payload = getFormPayload(roots.calculatorForm, { calculator_answers: calculatorState.answers });
+    roots.calculatorForm.dataset.submitting = 'true';
+    showFormMessage(roots.calculatorForm, 'Отправляем заявку...', 'idle');
 
-    window.__stroyDachaLeads = window.__stroyDachaLeads || [];
-    window.__stroyDachaLeads.push({ eventName: 'submit_calculator', payload });
+    const extraPayload = {
+      task_type: calculatorState.answers.task_type || '',
+      roof_area: calculatorState.answers.roof_area || '',
+      quiz_answers: buildQuizAnswers(),
+    };
 
-    trackEvent('submit_calculator', payload);
-    showFormMessage(roots.calculatorForm, 'Калькулятор заполнен. Данные собраны для передачи в CRM или почту.', 'success');
-    roots.calculatorForm.reset();
-    calculatorState.currentStep = 0;
-    calculatorState.answers = {};
-    renderCalculatorStep();
+    try {
+      appendTrackingFields(roots.calculatorForm, extraPayload);
+      const payload = getFormPayload(roots.calculatorForm, extraPayload);
+      const responsePayload = await submitLeadForm(roots.calculatorForm, 'submit_calculator', extraPayload);
+
+      window.__stroyDachaLeads = window.__stroyDachaLeads || [];
+      window.__stroyDachaLeads.push({ eventName: 'submit_calculator', payload });
+
+      trackEvent('submit_calculator', payload);
+      trackFormGoal(payload);
+      showFormMessage(
+        roots.calculatorForm,
+        'Прораб изучит данные и пришлёт ориентировочную вилку по работам и материалам. Если данных недостаточно, задаст 2–3 уточняющих вопроса.',
+        'success',
+      );
+      roots.calculatorForm.reset();
+      calculatorState.currentStep = 0;
+      calculatorState.answers = {};
+      renderCalculatorStep();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Не удалось отправить заявку.';
+      showFormMessage(roots.calculatorForm, errorMessage, 'error');
+    } finally {
+      roots.calculatorForm.dataset.submitting = 'false';
+    }
   });
 }
 
@@ -570,17 +821,96 @@ function bindExternalClicks() {
 }
 
 function bindFaq() {
-  document.querySelectorAll('.faq__item').forEach((item) => {
-    item.addEventListener('toggle', () => {
-      if (!item.open) {
+  const faqItems = Array.from(document.querySelectorAll('.faq__item'));
+  const controllers = new Map();
+
+  faqItems.forEach((item) => {
+    const summary = item.querySelector('.faq__question');
+
+    if (!(summary instanceof HTMLElement)) {
+      return;
+    }
+
+    let isClosing = false;
+    let isExpanding = false;
+
+    item.style.overflow = 'hidden';
+
+    const finishAnimation = () => {
+      item.style.height = '';
+      item.style.overflow = '';
+      item.style.transition = '';
+      isClosing = false;
+      isExpanding = false;
+    };
+
+    const closeItem = () => {
+      if (!item.open || isClosing) {
         return;
       }
 
-      document.querySelectorAll('.faq__item').forEach((otherItem) => {
-        if (otherItem !== item) {
-          otherItem.open = false;
-        }
+      isClosing = true;
+      isExpanding = false;
+      item.style.overflow = 'hidden';
+      item.style.height = `${item.offsetHeight}px`;
+
+      window.requestAnimationFrame(() => {
+        item.style.transition = `height ${FAQ_ANIMATION_DURATION}ms ease`;
+        item.style.height = `${summary.offsetHeight}px`;
       });
+
+      window.setTimeout(() => {
+        item.open = false;
+        finishAnimation();
+      }, FAQ_ANIMATION_DURATION);
+    };
+
+    const openItem = () => {
+      if (item.open && !isClosing) {
+        return;
+      }
+
+      faqItems.forEach((otherItem) => {
+        if (otherItem === item) {
+          return;
+        }
+
+        controllers.get(otherItem)?.close();
+      });
+
+      isExpanding = true;
+      isClosing = false;
+      item.style.overflow = 'hidden';
+      item.style.height = `${summary.offsetHeight}px`;
+      item.open = true;
+
+      const endHeight = item.offsetHeight;
+      item.style.height = `${summary.offsetHeight}px`;
+
+      window.requestAnimationFrame(() => {
+        item.style.transition = `height ${FAQ_ANIMATION_DURATION}ms ease`;
+        item.style.height = `${endHeight}px`;
+      });
+
+      window.setTimeout(() => {
+        finishAnimation();
+      }, FAQ_ANIMATION_DURATION);
+    };
+
+    controllers.set(item, {
+      close: closeItem,
+      open: openItem,
+    });
+
+    summary.addEventListener('click', (event) => {
+      event.preventDefault();
+
+      if (isClosing || !item.open) {
+        openItem();
+        return;
+      }
+
+      closeItem();
     });
   });
 }
@@ -625,8 +955,124 @@ function openProjectModal(projectIndex) {
     </div>
   `;
 
-  roots.modal.showModal();
+  showDialogModal();
   trackEvent('project_open', { project: project.title });
+}
+
+function openPhotoEstimateModal({
+  imageSrc = heroUploadImage,
+  imageAlt = 'Иллюстрация загрузки фотографии кровли',
+  title = 'Рассчитаем стоимость кровельных работ по фото',
+  description = 'Оценим объём работ, уточним узлы и свяжемся для расчёта.',
+  submitEventName = 'submit_photo_estimate_form',
+  openEventName = 'header_photo_estimate_open',
+  extraPayload = {
+    form_variant: 'header_photo_estimate',
+  },
+} = {}) {
+  if (!roots.modal || !roots.modalContent) {
+    return;
+  }
+
+  roots.modal.classList.remove('project-modal--lightbox');
+  roots.modalContent.innerHTML = `
+    <div class="estimate-modal">
+      <div class="estimate-modal__media">
+        <img class="estimate-modal__image" src="${imageSrc}" alt="${imageAlt}" width="180" height="124" />
+      </div>
+      <div class="estimate-modal__body">
+        <h2 class="estimate-modal__title">${title}</h2>
+        <p class="estimate-modal__text">${description}</p>
+        <form class="form-shell estimate-modal__form" id="photo-estimate-form" action="/api/lead.php" method="post" enctype="multipart/form-data" novalidate>
+          <div class="estimate-modal__fields">
+            <label class="field estimate-modal__field">
+              <span class="field__label">Имя</span>
+              <input class="field__control" type="text" name="name" autocomplete="name" placeholder="Ваше имя" />
+            </label>
+            <label class="field estimate-modal__field">
+              <span class="field__label">Телефон</span>
+              <span class="field__phone-combo">
+                <input class="field__control" type="tel" name="phone" autocomplete="tel" placeholder="+7 (___) ___-__-__" required />
+                <select class="field__phone-method" name="contact_method" aria-label="Предпочтительный способ связи">
+                  <option value="MAX">MAX</option>
+                  <option value="Telegram">Telegram</option>
+                  <option value="По телефону" selected>По телефону</option>
+                </select>
+              </span>
+            </label>
+          </div>
+          <label class="upload-field estimate-modal__upload">
+            <input class="upload-field__input" type="file" name="projectFile" accept=".jpg,.jpeg,.png,.webp,image/*" required />
+            <span class="estimate-modal__upload-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false"><path d="M11 5h2v8.2l2.6-2.6 1.4 1.4-5 5-5-5 1.4-1.4 2.6 2.6V5ZM5 19h14v2H5v-2Z"/></svg>
+            </span>
+            <span class="estimate-modal__upload-body">
+              <span class="upload-field__title">Загрузить фото кровли</span>
+              <span class="upload-field__hint">JPG, PNG или WEBP</span>
+            </span>
+          </label>
+          <button class="button button--primary estimate-modal__submit" type="submit">Получить расчёт</button>
+          <label class="form-consent estimate-modal__policy">
+            <input class="form-consent__input" type="checkbox" name="privacy_agree" required />
+            <span class="form-consent__check" aria-hidden="true"></span>
+            <span class="form-consent__text">Ознакомлен и согласен с условиями <a href="/privacy-policy/" target="_blank" rel="noopener noreferrer">политики конфиденциальности</a>.</span>
+          </label>
+          <p class="form-shell__message" data-form-message></p>
+        </form>
+      </div>
+    </div>
+  `;
+
+  const form = roots.modalContent.querySelector('#photo-estimate-form');
+  if (form instanceof HTMLFormElement) {
+    bindUploads();
+    handleGenericFormSubmit(form, submitEventName, extraPayload);
+  }
+
+  showDialogModal();
+  trackEvent(openEventName, extraPayload);
+}
+
+function showDialogModal() {
+  if (!roots.modal) {
+    return;
+  }
+
+  roots.modal.dataset.closing = 'false';
+  roots.modal.classList.remove('is-closing');
+
+  if (!roots.modal.open) {
+    roots.modal.showModal();
+  }
+
+  window.requestAnimationFrame(() => {
+    roots.modal.classList.add('is-open');
+  });
+}
+
+function closeDialogModal() {
+  if (!roots.modal?.open || roots.modal.dataset.closing === 'true') {
+    return;
+  }
+
+  roots.modal.dataset.closing = 'true';
+  roots.modal.classList.remove('is-open');
+  roots.modal.classList.add('is-closing');
+
+  window.setTimeout(() => {
+    if (!roots.modal) {
+      return;
+    }
+
+    roots.modal.classList.remove('is-closing');
+    roots.modal.classList.remove('is-open');
+    roots.modal.classList.remove('project-modal--lightbox');
+    roots.modal.dataset.closing = 'false';
+
+    if (roots.modal.open) {
+      roots.modal.close();
+    }
+  }, MODAL_ANIMATION_DURATION);
 }
 
 function renderProjectGalleryModal() {
@@ -646,7 +1092,7 @@ function renderProjectGalleryModal() {
         <img class="project-lightbox__image" src="${image.src}" alt="${image.alt || project.title}" width="1200" height="800" />
         ${
           hasMultipleImages
-            ? '<button class="project-lightbox__nav project-lightbox__nav--prev" type="button" data-project-gallery-nav="prev" aria-label="Предыдущее фото"><span>‹</span></button><button class="project-lightbox__nav project-lightbox__nav--next" type="button" data-project-gallery-nav="next" aria-label="Следующее фото"><span>›</span></button>'
+          ? '<button class="project-lightbox__nav project-lightbox__nav--prev" type="button" data-project-gallery-nav="prev" aria-label="Предыдущее фото"><img src="/src/assets/next-svgrepo-com.svg" alt="" aria-hidden="true" loading="lazy" width="24" height="24" /></button><button class="project-lightbox__nav project-lightbox__nav--next" type="button" data-project-gallery-nav="next" aria-label="Следующее фото"><img src="/src/assets/next-svgrepo-com.svg" alt="" aria-hidden="true" loading="lazy" width="24" height="24" /></button>'
             : ''
         }
       </div>
@@ -698,7 +1144,7 @@ function openProjectGallery(projectIndex, imageIndex = 0) {
   projectGalleryState.imageIndex = Math.max(0, Math.min(imageIndex, images.length - 1));
   roots.modal.classList.add('project-modal--lightbox');
   renderProjectGalleryModal();
-  roots.modal.showModal();
+  showDialogModal();
   trackEvent('project_gallery_open', { project: project.title });
 }
 
@@ -894,16 +1340,100 @@ function bindProjectsShowMore() {
   });
 }
 
+function bindVideoReviewsShowMore() {
+  const grid = document.querySelector('#video-reviews-grid');
+  const button = document.querySelector('#video-reviews-more');
+
+  if (!(grid instanceof HTMLElement) || !(button instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  const visibleLimit = 10;
+  const cards = Array.from(grid.querySelectorAll('.video-preview-card'));
+  const hiddenCards = cards.slice(visibleLimit);
+
+  cards.forEach((card, index) => {
+    card.classList.toggle('video-preview-card--hidden', index >= visibleLimit);
+  });
+
+  if (!hiddenCards.length) {
+    button.hidden = true;
+    return;
+  }
+
+  button.hidden = false;
+  button.addEventListener('click', () => {
+    hiddenCards.forEach((card) => card.classList.remove('video-preview-card--hidden'));
+    button.remove();
+    trackEvent('video_reviews_show_all');
+  });
+}
+
+function bindVideoPreviewPlayback() {
+  const stages = Array.from(document.querySelectorAll('.video-preview-card__stage'));
+
+  if (!stages.length) {
+    return;
+  }
+
+  const pauseOtherVideos = (activeVideo) => {
+    document.querySelectorAll('.video-preview-card__image').forEach((media) => {
+      if (!(media instanceof HTMLVideoElement) || media === activeVideo) {
+        return;
+      }
+
+      media.pause();
+      media.closest('.video-preview-card__stage')?.classList.remove('is-playing');
+    });
+  };
+
+  stages.forEach((stage) => {
+    const video = stage.querySelector('.video-preview-card__image');
+
+    if (!(video instanceof HTMLVideoElement)) {
+      return;
+    }
+
+    stage.addEventListener('click', async (event) => {
+      event.preventDefault();
+
+      if (video.paused) {
+        pauseOtherVideos(video);
+
+        try {
+          await video.play();
+          stage.classList.add('is-playing');
+        } catch {
+          stage.classList.remove('is-playing');
+        }
+
+        return;
+      }
+
+      video.pause();
+      stage.classList.remove('is-playing');
+    });
+
+    video.addEventListener('pause', () => {
+      stage.classList.remove('is-playing');
+    });
+
+    video.addEventListener('ended', () => {
+      stage.classList.remove('is-playing');
+    });
+  });
+}
+
 function bindProjectModal() {
   if (!roots.modal || !roots.modalContent) {
     return;
   }
 
   const closeControl = roots.modal.querySelector('.project-modal__close');
+  const backdrop = roots.modal.querySelector('.project-modal__backdrop');
   const closeModal = (event) => {
     event.preventDefault();
-    roots.modal.classList.remove('project-modal--lightbox');
-    roots.modal.close();
+    closeDialogModal();
   };
 
   closeControl?.addEventListener('click', closeModal);
@@ -911,6 +1441,25 @@ function bindProjectModal() {
     if (event.key === 'Enter' || event.key === ' ') {
       closeModal(event);
     }
+  });
+  backdrop?.addEventListener('click', closeModal);
+
+  roots.modal.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    closeDialogModal();
+  });
+
+  roots.modal.addEventListener('click', (event) => {
+    if (event.target === roots.modal) {
+      closeDialogModal();
+    }
+  });
+
+  roots.modal.addEventListener('close', () => {
+    roots.modal.classList.remove('is-open');
+    roots.modal.classList.remove('is-closing');
+    roots.modal.classList.remove('project-modal--lightbox');
+    roots.modal.dataset.closing = 'false';
   });
 
   roots.modalContent.addEventListener('click', (event) => {
@@ -953,6 +1502,51 @@ function bindProjectModal() {
       event.preventDefault();
       moveProjectGallery(1);
     }
+  });
+}
+
+function bindHeaderPhotoEstimate() {
+  document.querySelectorAll('.header-bar__call, .pricing-cta__button, .hero-cta--secondary').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      if (button.matches('a')) {
+        event.preventDefault();
+      }
+
+      openPhotoEstimateModal();
+    });
+  });
+}
+
+function bindPricingFactorEstimateCtas() {
+  document.querySelectorAll('.pricing-factor-card__cta').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+
+      const card = button.closest('.pricing-factor-card');
+
+      if (!card) {
+        return;
+      }
+
+      const image = card.querySelector('.pricing-factor-card__image');
+      const titleElement = card.querySelector('.pricing-factor-card__title');
+      const buttonText = button.textContent?.trim() || 'Получить расчёт';
+      const cardTitle = titleElement?.textContent?.trim() || buttonText;
+
+      openPhotoEstimateModal({
+        imageSrc: image instanceof HTMLImageElement ? image.currentSrc || image.src : heroUploadImage,
+        imageAlt: image instanceof HTMLImageElement ? image.alt || cardTitle : cardTitle,
+        title: buttonText,
+        description: `Оценим стоимость работ по направлению «${cardTitle}» и свяжемся с вами для расчёта.`,
+        submitEventName: 'submit_pricing_factor_estimate_form',
+        openEventName: 'pricing_factor_estimate_open',
+        extraPayload: {
+          form_variant: 'pricing_factor_estimate',
+          pricing_factor: cardTitle,
+          pricing_factor_cta: buttonText,
+        },
+      });
+    });
   });
 }
 
@@ -1022,9 +1616,73 @@ function bindCtas() {
   });
 }
 
+function bindPricingFactorCards() {
+  const cards = Array.from(document.querySelectorAll('.pricing-factor-card'));
+
+  if (!cards.length) {
+    return;
+  }
+
+  cards.forEach((card) => {
+    const mediaImage = card.querySelector('.pricing-factor-card__image');
+    const indexBadge = card.querySelector('.pricing-factor-card__index');
+    const thumbs = Array.from(card.querySelectorAll('.pricing-factor-card__thumb'));
+
+    if (mediaImage instanceof HTMLImageElement && thumbs.length) {
+      const activeThumb = thumbs.find((thumb) => thumb.classList.contains('is-active')) || thumbs[0];
+
+      if (activeThumb instanceof HTMLButtonElement) {
+        const initialImage = activeThumb.dataset.pricingImage;
+        const initialPreview = activeThumb.querySelector('img');
+        const initialPrice = activeThumb.querySelector('.pricing-factor-card__thumb-label strong');
+
+        if (initialImage) {
+          mediaImage.src = initialImage;
+        }
+        if (initialPreview instanceof HTMLImageElement) {
+          mediaImage.alt = initialPreview.alt || mediaImage.alt;
+        }
+        if (indexBadge && initialPrice) {
+          indexBadge.textContent = initialPrice.textContent || '';
+        }
+      }
+
+      thumbs.forEach((thumb) => {
+        if (!(thumb instanceof HTMLButtonElement)) {
+          return;
+        }
+
+        thumb.addEventListener('click', (event) => {
+          event.preventDefault();
+
+          const nextImage = thumb.dataset.pricingImage;
+          const nextPreview = thumb.querySelector('img');
+          const nextPrice = thumb.querySelector('.pricing-factor-card__thumb-label strong');
+
+          if (!nextImage) {
+            return;
+          }
+
+          mediaImage.src = nextImage;
+          if (nextPreview instanceof HTMLImageElement) {
+            mediaImage.alt = nextPreview.alt || mediaImage.alt;
+          }
+          if (indexBadge && nextPrice) {
+            indexBadge.textContent = nextPrice.textContent || '';
+          }
+
+          thumbs.forEach((item) => item.classList.remove('is-active'));
+          thumb.classList.add('is-active');
+        });
+      });
+    }
+  });
+}
+
 function init() {
   applyCompanyData();
   renderCalculatorStep();
+  bindPhoneMask();
   bindAnchors();
   bindMobileHeaderMenu();
   bindServicesDropdown();
@@ -1033,8 +1691,13 @@ function init() {
   bindFaq();
   bindProjects();
   bindProjectModal();
+  bindHeaderPhotoEstimate();
+  bindPricingFactorEstimateCtas();
   bindUploads();
   bindReviewsSlider();
+  bindPricingFactorCards();
+  bindVideoPreviewPlayback();
+  bindVideoReviewsShowMore();
   bindCtas();
   handleGenericFormSubmit(roots.leadForm, 'submit_lead_form');
   handleGenericFormSubmit(roots.auditForm, 'submit_audit_form');
